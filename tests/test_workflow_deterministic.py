@@ -41,6 +41,26 @@ class WorkflowCompilationTests(unittest.TestCase):
         for workflow_id in WORKFLOW_IDS:
             self.assertTrue((REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.lock.yml").exists())
 
+    def test_mcp_request_workflow_uses_simplified_inputs(self) -> None:
+        workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
+
+        self.assertIn("request_reason", workflow_text)
+        self.assertIn("### MCP Endpoint", workflow_text)
+        self.assertIn("### Request Reason", workflow_text)
+        self.assertNotIn("tools_overview", workflow_text)
+        self.assertNotIn("owner_team", workflow_text)
+        self.assertNotIn("data_classification", workflow_text)
+
+    def test_issue_template_is_minimal(self) -> None:
+        template_text = (REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "mcp-server-request.yml").read_text(encoding="utf-8")
+
+        self.assertIn("id: server_url", template_text)
+        self.assertIn("id: request_reason", template_text)
+        self.assertNotIn("id: server_name", template_text)
+        self.assertNotIn("id: tools_overview", template_text)
+        self.assertNotIn("id: owner_team", template_text)
+        self.assertNotIn("id: data_classification", template_text)
+
 
 class _ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
