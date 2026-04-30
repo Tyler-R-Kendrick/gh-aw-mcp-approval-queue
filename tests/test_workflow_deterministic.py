@@ -51,6 +51,26 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertNotIn("owner_team", workflow_text)
         self.assertNotIn("data_classification", workflow_text)
 
+    def test_mcp_request_workflow_embeds_runtime_trigger_values(self) -> None:
+        workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "id: request_payload",
+            workflow_text,
+        )
+        self.assertIn(
+            "${{ steps.request_payload.outputs.server_url }}",
+            workflow_text,
+        )
+        self.assertIn(
+            "${{ steps.request_payload.outputs.request_reason }}",
+            workflow_text,
+        )
+        self.assertIn(
+            "${{ steps.request_payload.outputs.issue_title }}",
+            workflow_text,
+        )
+
     def test_issue_template_is_minimal(self) -> None:
         template_text = (REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "mcp-server-request.yml").read_text(encoding="utf-8")
 
