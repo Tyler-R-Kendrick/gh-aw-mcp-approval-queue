@@ -4,30 +4,12 @@ description: Creates a new GitHub issue from the MCP Server Request template whe
 on:
   workflow_dispatch:
     inputs:
-      server_name:
-        description: "MCP server name"
-        required: false
-        default: ""
       server_url:
-        description: "MCP server runtime URL (HTTPS)"
-        required: false
-        default: ""
-      description:
-        description: "What the MCP server does"
-        required: false
-        default: ""
-      tools_overview:
-        description: "Comma-separated list of tools the server exposes"
-        required: false
-        default: ""
-      owner_team:
-        description: "GitHub team or @username responsible for the server"
-        required: false
-        default: ""
-      data_classification:
-        description: "Data classification (Public/Internal/Confidential/Restricted)"
-        required: false
-        default: "Internal"
+        description: "Public HTTPS MCP endpoint"
+        required: true
+      request_reason:
+        description: "Why this MCP server should be reviewed"
+        required: true
   repository_dispatch:
     types: [mcp-request]
 permissions:
@@ -53,52 +35,34 @@ issue so the MCP review pipeline can process the submission.
 
 Read the trigger payload to extract these fields. For `workflow_dispatch`, read
 from `github.event.inputs`. For `repository_dispatch`, read from
-`github.event.client_payload`. Use the following defaults for any missing field:
+`github.event.client_payload`. Copy the provided values exactly, trimming only
+surrounding whitespace. Only use the defaults below when a field is genuinely
+missing or blank:
 
 | Field | Default |
 |-------|---------|
-| `server_name` | `"Unknown MCP Server"` |
 | `server_url` | `""` (empty — must be supplied by the caller) |
-| `description` | `"No description provided — please update this issue."` |
-| `tools_overview` | `"Not provided — please list your MCP tools."` |
-| `owner_team` | `"@unknown"` |
-| `data_classification` | `"Internal"` |
+| `request_reason` | `"No request reason provided — please update this issue."` |
 
 ## Step 2: Create the issue
 
 Use the `create-issue` safe output with:
 
-- **Title**: `[MCP Request] <server_name>`
+- **Title**: `[MCP Request] <server_identifier>` where `server_identifier` is
+  derived from `server_url` by taking the hostname and, when the path is not
+  empty or `/`, appending the path segments separated by `-` (never include
+  query parameters or fragments)
 - **Labels**: `mcp-request`, `pending-review`
 - **Body** (use this exact Markdown structure):
 
 ```
 ## MCP Server Registration Request
 
-### Server Name
-<server_name>
-
-### Runtime URL
+### MCP Endpoint
 <server_url>
 
-### Description
-<description>
-
-### Tools Overview
-<tools_overview>
-
-### Owning Team / Contact
-<owner_team>
-
-### Data Classification
-<data_classification>
-
-### Security Checklist
-- [x] The server does not log or store raw user prompts
-- [x] The server uses HTTPS/TLS for all transport
-- [x] Authentication is required to invoke tools
-- [x] No credentials, secrets, or tokens are hardcoded
-- [x] The server has been tested locally against the MCP specification
+### Request Reason
+<request_reason>
 
 ---
 *This issue was automatically created by the MCP request intake workflow.*
@@ -124,13 +88,13 @@ If you need to update any information, please edit the issue body directly.
 If `server_url` is empty, still create the issue (so the requester has a ticket to
 update) but add a comment warning:
 ```
-⚠️ No Runtime URL was provided. Please update this issue with a valid HTTPS URL
+⚠️ No MCP endpoint was provided. Please update this issue with a valid HTTPS URL
 before the automated scan begins.
 ```
 
 If `server_url` is provided but does not start with `https://`, create the issue
 but add a comment warning:
 ```
-⚠️ The Runtime URL does not start with `https://`. Please update the issue with a
+⚠️ The MCP endpoint does not start with `https://`. Please update the issue with a
 valid HTTPS URL before the automated scan begins.
 ```

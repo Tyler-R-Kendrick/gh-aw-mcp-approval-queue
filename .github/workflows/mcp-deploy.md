@@ -86,10 +86,16 @@ so `${{ steps.sanitized.outputs.text }}` is always available and contains the
 issue title and body with security-safe sanitization applied.
 
 From `${{ steps.sanitized.outputs.text }}`, extract:
-- `server_name` — from "### Server Name" section
-- `server_url` — from "### Runtime URL" section
-- `description` — from "### Description" section
-- `owner_team` — from "### Owning Team / Contact" section
+- `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section
+- `request_reason` — use the "### Request Reason" section when it is present and non-empty; otherwise fall back to the legacy "### Description" section
+
+Derive `server_name` from `server_url` using this exact rule:
+1. Start with the endpoint hostname.
+2. If the URL path is not empty or `/`, append the path segments separated by `-`.
+3. Exclude query parameters and fragments.
+4. Use the resulting readable identifier for display and for `deploy-to-apic.sh`.
+
+Use `request_reason` as the deployment description.
 
 ## Step 4: Deploy to Azure API Center
 
@@ -99,7 +105,7 @@ Run the deployment script:
 bash scripts/deploy-to-apic.sh \
   --server-name    "<server_name>"           \
   --server-url     "<server_url>"            \
-  --description    "<description>"           \
+  --description    "<request_reason>"        \
   --subscription   "$AZURE_SUBSCRIPTION_ID"  \
   --resource-group "$AZURE_RESOURCE_GROUP"   \
   --apic-service   "$AZURE_APIC_SERVICE"
@@ -151,7 +157,7 @@ The deployment to Azure API Center failed. Error output:
 - Service principal lacks `Contributor` access to `<AZURE_RESOURCE_GROUP>`
 
 Please review the configuration and re-trigger by removing and re-adding the
-`approved` label, or contact <owner_team> for assistance.
+`approved` label once the configuration is fixed.
 ````
 
 Do **not** close the issue on failure — it requires human intervention.

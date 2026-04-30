@@ -56,13 +56,11 @@ issue title and body with security-safe sanitization applied.
 
 From `${{ steps.sanitized.outputs.text }}`, extract:
 
-- `server_url` — from the "### Runtime URL" section
-- `server_name` — from the "### Server Name" section
-- `owner_team` — from the "### Owning Team / Contact" section
+- `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section for backwards compatibility
 - `issue_number` — from `${{ github.event.issue.number }}`
 
 If `server_url` is missing or does not start with `https://`:
-1. Post a comment: `❌ Invalid or missing Runtime URL. Please update this issue with a valid HTTPS URL to begin scanning.`
+1. Post a comment: `❌ Invalid or missing MCP endpoint. Please update this issue with a valid HTTPS URL to begin scanning.`
 2. Add label `requires-manual-review`
 3. Remove label `pending-review`
 4. Stop processing.
@@ -132,7 +130,7 @@ Post a comment on the issue using this structure:
 **If verdict is `requires_manual_review`:**
 1. Remove label `pending-review`
 2. Add label `requires-manual-review`
-3. Post comment: `⚠️ <owner_team> — Your MCP server requires manual security review before it can be approved. Please review the scan findings above.`
+3. Post comment: `⚠️ This MCP server requires manual security review before it can be approved. Please review the scan findings above.`
 
 **If verdict is `rejected`:**
 1. Remove label `pending-review`
