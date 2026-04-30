@@ -69,6 +69,11 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertNotIn("steps.request_payload.outputs", workflow_text)
         self.assertNotIn("id: request_payload", workflow_text)
 
+    def test_mcp_review_workflow_listens_for_pending_review_issue_events(self) -> None:
+        workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-review.md").read_text(encoding="utf-8")
+
+        self.assertIn("types: [opened, edited, labeled, reopened]", workflow_text)
+
     def test_issue_template_is_minimal(self) -> None:
         template_text = (REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "mcp-server-request.yml").read_text(encoding="utf-8")
 

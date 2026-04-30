@@ -3,7 +3,7 @@ name: MCP Server Review
 description: Scans and evaluates an MCP server submitted via an mcp-request issue. Runs semantic accuracy, malicious-pattern, vulnerability, and functional tests, then sets the verdict label (approved / requires-manual-review / rejected) and posts results.
 on:
   issues:
-    types: [opened, edited]
+    types: [opened, edited, labeled, reopened]
   skip-if-no-match: "is:issue is:open label:mcp-request label:pending-review"
 permissions:
   contents: read
