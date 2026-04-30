@@ -98,7 +98,7 @@ class WorkflowCompilationTests(unittest.TestCase):
 
             self.assertIn("Trim surrounding whitespace.", workflow_text)
             self.assertIn("Markdown delimiters", workflow_text)
-            self.assertIn("no URI scheme", workflow_text)
+            self.assertIn("has no URI scheme", workflow_text)
             self.assertIn("`https://`", workflow_text)
             self.assertIn("preserve it as-is", workflow_text)
 
