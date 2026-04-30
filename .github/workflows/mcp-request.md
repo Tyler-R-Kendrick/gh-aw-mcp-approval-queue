@@ -81,11 +81,20 @@ genuinely missing or blank after trimming:
 | `server_url` | `""` (empty — must be supplied by the caller) |
 | `request_reason` | `"No request reason provided — please update this issue."` |
 
+Derive `issue_title` from `server_url` using this exact rule:
+
+- Start with `[MCP Request]`
+- If `server_url` is non-empty, parse it as a URL, collect the hostname plus every
+  non-empty path segment, and join those pieces with `-`
+- If that derived identifier is non-empty, append it to the base title as
+  `[MCP Request] <identifier>`
+- Otherwise keep the base title unchanged
+
 ## Step 2: Create the issue
 
 Use the `create-issue` safe output with:
 
-- **Title**: `[MCP Request]`
+- **Title**: `<issue_title>`
 - **Labels**: `mcp-request`, `pending-review`
 - **Body** (use this exact Markdown structure):
 
