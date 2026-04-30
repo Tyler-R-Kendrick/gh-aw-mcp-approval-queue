@@ -109,6 +109,15 @@ From `issue_text`, extract:
 - `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section
 - `request_reason` — use the "### Request Reason" section when it is present and non-empty; otherwise fall back to the legacy "### Description" section
 
+Normalize `server_url` before deriving the deployment parameters:
+1. Trim surrounding whitespace.
+2. If the value is wrapped in a single pair of Markdown delimiters such as
+   `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
+3. If the remaining value is non-empty and has no URI scheme, prepend
+   `https://`.
+4. Use the normalized value for `server_url`, `server_name`, and the deployment
+   command.
+
 Derive `server_name` from `server_url` using this exact rule:
 1. Start with the endpoint hostname.
 2. If the URL path is not empty or `/`, append the path segments separated by `-`.
