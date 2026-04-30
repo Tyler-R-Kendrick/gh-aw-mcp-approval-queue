@@ -15,49 +15,6 @@ on:
 permissions:
   contents: read
   issues: read
-steps:
-  - name: Extract MCP request payload
-    id: request_payload
-    shell: bash
-    env:
-      INPUT_SERVER_URL: ${{ github.event.inputs.server_url }}
-      INPUT_REQUEST_REASON: ${{ github.event.inputs.request_reason }}
-    run: |
-      python3 - <<'PY'
-      import json
-      import os
-      from pathlib import Path
-      from urllib.parse import urlparse
-
-      def cleaned(value: object) -> str:
-          return value.strip() if isinstance(value, str) else ""
-
-      event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
-      client_payload = event.get("client_payload") or {}
-
-      server_url = cleaned(os.environ.get("INPUT_SERVER_URL")) or cleaned(client_payload.get("server_url"))
-      request_reason = (
-          cleaned(os.environ.get("INPUT_REQUEST_REASON"))
-          or cleaned(client_payload.get("request_reason"))
-          or "No request reason provided — please update this issue."
-      )
-
-      issue_title = "[MCP Request]"
-      if server_url:
-          parsed = urlparse(server_url)
-          identifier_parts = [cleaned(parsed.hostname), *[segment for segment in parsed.path.split("/") if segment]]
-          server_identifier = "-".join(part for part in identifier_parts if part)
-          if server_identifier:
-              issue_title = f"[MCP Request] {server_identifier}"
-
-      with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
-          for key, value in {
-              "server_url": server_url,
-              "request_reason": request_reason,
-              "issue_title": issue_title,
-          }.items():
-              handle.write(f"{key}<<__GH_AW_EOF__\n{value}\n__GH_AW_EOF__\n")
-      PY
 safe-outputs:
   create-issue:
     max: 1
@@ -67,6 +24,8 @@ safe-outputs:
 tools:
   github:
     toolsets: [issues]
+  bash:
+    - "python3 *"
 ---
 
 # MCP Request Intake
@@ -74,22 +33,64 @@ tools:
 You are an MCP request intake agent. Your job is to create a well-formed GitHub
 issue so the MCP review pipeline can process the submission.
 
-## Step 1: Extract payload
+## Step 1: Read the trigger payload
 
 The workflow runtime has already expanded the trigger payload into these values:
 
-- `server_url`: `${{ steps.request_payload.outputs.server_url }}`
-- `request_reason`: `${{ steps.request_payload.outputs.request_reason }}`
-- `issue_title`: `${{ steps.request_payload.outputs.issue_title }}`
+- `server_url_from_inputs`: `${{ github.event.inputs.server_url || '' }}`
+- `request_reason_from_inputs`: `${{ github.event.inputs.request_reason || '' }}`
 
-Use those exact values. Trim only surrounding whitespace. Only use the defaults
-below when a field is genuinely missing or blank after trimming:
+If `server_url_from_inputs` is non-empty after trimming whitespace, use it as
+`server_url`. Use `request_reason_from_inputs` as `request_reason`, defaulting to
+`"No request reason provided — please update this issue."` only when it is blank.
+
+If `server_url_from_inputs` is blank, this run may have been triggered through
+`repository_dispatch`. In that case, use the `bash` tool to run this exact
+command and parse its JSON output:
+
+```bash
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+def cleaned(value: object) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+client_payload = event.get("client_payload") or {}
+payload = client_payload.get("payload") or {}
+
+print(json.dumps({
+    "server_url": cleaned(client_payload.get("server_url")) or cleaned(payload.get("server_url")),
+    "request_reason": (
+        cleaned(client_payload.get("request_reason"))
+        or cleaned(payload.get("request_reason"))
+        or "No request reason provided — please update this issue."
+    ),
+}))
+PY
+```
+
+Use the returned `server_url` and `request_reason` values exactly as provided.
+Trim only surrounding whitespace. Only use the defaults below when a field is
+genuinely missing or blank after trimming:
 
 | Field | Default |
 |-------|---------|
 | `server_url` | `""` (empty — must be supplied by the caller) |
 | `request_reason` | `"No request reason provided — please update this issue."` |
-| `issue_title` | `"[MCP Request]"` |
+
+Derive `issue_title` from `server_url` using this exact rule:
+
+- Start with `[MCP Request]`
+- If `server_url` is non-empty, parse it as a URL, extract the hostname and all
+  non-empty path segments, and join those pieces with `-`
+- If parsing fails, the hostname is missing, or the derived identifier would be
+  empty, treat the identifier as empty
+- If that derived identifier is non-empty, append it to the base title as
+  `[MCP Request] <identifier>`
+- Otherwise keep the base title unchanged
 
 ## Step 2: Create the issue
 
