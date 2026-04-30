@@ -35,7 +35,9 @@ issue so the MCP review pipeline can process the submission.
 
 Read the trigger payload to extract these fields. For `workflow_dispatch`, read
 from `github.event.inputs`. For `repository_dispatch`, read from
-`github.event.client_payload`. Use the following defaults for any missing field:
+`github.event.client_payload`. Copy the provided values exactly, trimming only
+surrounding whitespace. Only use the defaults below when a field is genuinely
+missing or blank:
 
 | Field | Default |
 |-------|---------|

@@ -1,6 +1,6 @@
 name: MCP Server Request
 description: Submit a new MCP (Model Context Protocol) server for review and approval.
-title: "[MCP Request] <Server Name>"
+title: "[MCP Request]"
 labels:
   - mcp-request
   - pending-review
