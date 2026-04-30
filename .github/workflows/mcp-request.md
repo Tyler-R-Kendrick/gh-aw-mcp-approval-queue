@@ -84,8 +84,8 @@ genuinely missing or blank after trimming:
 Derive `issue_title` from `server_url` using this exact rule:
 
 - Start with `[MCP Request]`
-- If `server_url` is non-empty, parse it as a URL, collect the hostname plus every
-  non-empty path segment, and join those pieces with `-`
+- If `server_url` is non-empty, parse it as a URL, extract the hostname and all
+  non-empty path segments, and join those pieces with `-`
 - If parsing fails, the hostname is missing, or the derived identifier would be
   empty, treat the identifier as empty
 - If that derived identifier is non-empty, append it to the base title as

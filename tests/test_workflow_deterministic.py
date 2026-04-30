@@ -64,7 +64,7 @@ class WorkflowCompilationTests(unittest.TestCase):
         )
         self.assertIn("python3 - <<'PY'", workflow_text)
         self.assertIn('os.environ["GITHUB_EVENT_PATH"]', workflow_text)
-        self.assertIn("collect the hostname plus every", workflow_text)
+        self.assertIn("extract the hostname and all", workflow_text)
         self.assertIn("`issue_title`", workflow_text)
         self.assertNotIn("steps.request_payload.outputs", workflow_text)
         self.assertNotIn("id: request_payload", workflow_text)
