@@ -41,7 +41,7 @@ class WorkflowCompilationTests(unittest.TestCase):
         for workflow_id in WORKFLOW_IDS:
             self.assertTrue((REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.lock.yml").exists())
 
-    def test_mcp_request_workflow_uses_simplified_inputs(self) -> None:
+    def test_mcp_request_workflow_documentation_uses_simplified_inputs(self) -> None:
         workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
 
         self.assertIn("request_reason", workflow_text)
