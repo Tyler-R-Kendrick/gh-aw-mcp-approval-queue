@@ -1,0 +1,46 @@
+name: Validate Agentic Workflows
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gh-aw
+        run: bash scripts/setup-gh-aw.sh
+
+      - name: Install test dependencies
+        run: python3 -m pip install --upgrade pip -r requirements-test.txt
+
+      - name: Compile workflows
+        run: gh aw compile
+
+      - name: Run deterministic workflow tests
+        run: python3 -m pytest tests/test_workflow_deterministic.py -v
+
+      - name: Run agenteval workflow tests
+        run: python3 -m pytest tests/agent_evals -v --agenteval-report=json --agenteval-report-dir=artifacts/agenteval
+
+      - name: Upload agenteval reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agenteval-reports
+          path: artifacts/agenteval

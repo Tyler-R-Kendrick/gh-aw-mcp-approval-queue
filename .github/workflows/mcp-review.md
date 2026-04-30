@@ -23,6 +23,9 @@ network:
 safe-outputs:
   add-labels:
     max: 3
+  remove-labels:
+    allowed: [pending-review]
+    max: 1
   add-comment:
     max: 2
   close-issue:

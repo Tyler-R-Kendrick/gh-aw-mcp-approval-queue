@@ -4,7 +4,7 @@ description: Deploys an approved MCP server to the Azure API Center MCP registry
 on:
   issues:
     types: [labeled]
-  if: "github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'mcp-request')"
+if: github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'mcp-request')
 permissions:
   contents: read
   issues: read
@@ -126,7 +126,7 @@ Your MCP server is now registered in the organization's MCP registry and
 available for discovery by AI agents.
 
 ---
-*Deployed at ${{ github.event.issue.updated_at }} — run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}*
+*Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}*
 ```
 
 3. Close the issue with comment: `✅ Deployment complete. This MCP server request is resolved.`
