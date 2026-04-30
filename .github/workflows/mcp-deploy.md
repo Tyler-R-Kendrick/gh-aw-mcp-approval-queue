@@ -89,9 +89,13 @@ From `${{ steps.sanitized.outputs.text }}`, extract:
 - `server_url` — from "### MCP Endpoint" section, or fall back to the legacy "### Runtime URL" section if needed
 - `request_reason` — from "### Request Reason" section, or fall back to the legacy "### Description" section if needed
 
-Derive a concise `server_name` from `server_url` so it is stable and readable for
-Azure API Center registration. Prefer the endpoint host (and path if needed to
-avoid collisions). Use `request_reason` as the deployment description.
+Derive `server_name` from `server_url` using this exact rule:
+1. Start with the endpoint hostname.
+2. If the URL path is not empty or `/`, append the path segments separated by `-`.
+3. Exclude query parameters and fragments.
+4. Use the resulting readable identifier for display and for `deploy-to-apic.sh`.
+
+Use `request_reason` as the deployment description.
 
 ## Step 4: Deploy to Azure API Center
 

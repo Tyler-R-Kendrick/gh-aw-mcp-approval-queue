@@ -48,7 +48,8 @@ missing or blank:
 
 Use the `create-issue` safe output with:
 
-- **Title**: `[MCP Request] <server_url>`
+- **Title**: `[MCP Request] <server_identifier>` where `server_identifier` is the
+  hostname from `server_url` (do not include query parameters)
 - **Labels**: `mcp-request`, `pending-review`
 - **Body** (use this exact Markdown structure):
 
