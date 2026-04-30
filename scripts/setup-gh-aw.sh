@@ -63,7 +63,10 @@ install_gh_aw() {
   fi
 
   info "Installing gh-aw extension …"
-  gh extension install github/gh-aw
+  if ! gh extension install github/gh-aw; then
+    info "gh extension install failed — falling back to the official installer …"
+    curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash
+  fi
 
   ok "gh-aw installed: $(gh aw version 2>/dev/null || echo 'installed')"
 }

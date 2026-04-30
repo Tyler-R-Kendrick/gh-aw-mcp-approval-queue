@@ -38,10 +38,10 @@ safe-outputs:
     max: 1
     labels: [mcp-request, pending-review]
   add-comment:
-    max: 1
+    max: 2
 tools:
   github:
-    toolsets: [default]
+    toolsets: [issues]
 ---
 
 # MCP Request Intake
