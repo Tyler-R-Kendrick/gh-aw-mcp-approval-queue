@@ -55,7 +55,7 @@ install_gh_cli() {
 
 # ─── gh-aw extension ──────────────────────────────────────────────────────────
 install_gh_aw() {
-  if gh extension list 2>/dev/null | grep -q "gh-aw"; then
+  if gh aw version &>/dev/null; then
     info "gh-aw already installed — upgrading to latest …"
     gh extension upgrade aw 2>/dev/null || true
     ok "gh-aw ready: $(gh aw version 2>/dev/null || echo 'unknown version')"
@@ -63,8 +63,7 @@ install_gh_aw() {
   fi
 
   info "Installing gh-aw extension …"
-  # Use the canonical install script from the gh-aw repository
-  curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash
+  gh extension install github/gh-aw
 
   ok "gh-aw installed: $(gh aw version 2>/dev/null || echo 'installed')"
 }

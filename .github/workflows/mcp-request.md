@@ -58,7 +58,7 @@ from `github.event.inputs`. For `repository_dispatch`, read from
 | Field | Default |
 |-------|---------|
 | `server_name` | `"Unknown MCP Server"` |
-| `server_url` | `"https://PLACEHOLDER.example.com/mcp"` |
+| `server_url` | `""` (empty — must be supplied by the caller) |
 | `description` | `"No description provided — please update this issue."` |
 | `tools_overview` | `"Not provided — please list your MCP tools."` |
 | `owner_team` | `"@unknown"` |
@@ -66,7 +66,7 @@ from `github.event.inputs`. For `repository_dispatch`, read from
 
 ## Step 2: Create the issue
 
-Use the `create_issue` safe output with:
+Use the `create-issue` safe output with:
 
 - **Title**: `[MCP Request] <server_name>`
 - **Labels**: `mcp-request`, `pending-review`
@@ -121,8 +121,15 @@ If you need to update any information, please edit the issue body directly.
 
 ## Error handling
 
-If `server_url` is provided but does not start with `https://`, still create the
-issue but add a comment warning:
+If `server_url` is empty, still create the issue (so the requester has a ticket to
+update) but add a comment warning:
+```
+⚠️ No Runtime URL was provided. Please update this issue with a valid HTTPS URL
+before the automated scan begins.
+```
+
+If `server_url` is provided but does not start with `https://`, create the issue
+but add a comment warning:
 ```
 ⚠️ The Runtime URL does not start with `https://`. Please update the issue with a
 valid HTTPS URL before the automated scan begins.

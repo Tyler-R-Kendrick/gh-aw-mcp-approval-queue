@@ -47,6 +47,10 @@ If any condition fails, call `noop` with a brief explanation and stop.
 
 ## Step 2: Parse the issue body
 
+gh-aw automatically injects a `sanitized` step for all issue-triggered workflows,
+so `${{ steps.sanitized.outputs.text }}` is always available and contains the
+issue title and body with security-safe sanitization applied.
+
 From `${{ steps.sanitized.outputs.text }}`, extract:
 
 - `server_url` — from the "### Runtime URL" section

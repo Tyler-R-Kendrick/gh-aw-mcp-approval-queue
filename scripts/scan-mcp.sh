@@ -7,8 +7,8 @@
 # Outputs a JSON report to --output-dir (default: /tmp/mcp-scan-results)
 # containing:
 #   - tool_definitions.json   – schema of all tools exposed
-#   - semantic_report.json    – LLM-based semantic accuracy evaluation
-#   - binary_scan.json        – Trivy/grype vulnerability scan results
+#   - semantic_report.json    – static/regex-based semantic accuracy checks
+#   - binary_scan.json        – Trivy/grype vulnerability scan results (local paths only)
 #   - custom_tests.json       – results of custom MCP test suite
 #   - verdict.json            – final approval verdict
 
@@ -140,21 +140,113 @@ PYEOF
 }
 
 # ─── 3. Binary / vulnerability scan ──────────────────────────────────────────
+
+# Returns 0 if target is an HTTP/HTTPS URL, 1 otherwise.
+_is_url_target() {
+  case "$1" in
+    http://*|https://*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Write a sentinel binary_scan.json with no vulnerabilities.
+_write_binary_scan_status() {
+  local scan_file="$1" status="$2" reason="$3"
+  python3 - <<'PYEOF' "$scan_file" "$status" "$reason" "$MCP_TARGET"
+import json, sys
+scan_file, status, reason, target = sys.argv[1:5]
+with open(scan_file, "w") as f:
+    json.dump({"status": status, "reason": reason, "target": target, "vulnerabilities": []}, f, indent=2)
+PYEOF
+}
+
+# Normalize raw scanner JSON into a flat vulnerabilities list.
+_normalize_binary_scan() {
+  local raw_file="$1" scan_file="$2" scanner="$3"
+  python3 - <<'PYEOF' "$raw_file" "$scan_file" "$scanner" "$MCP_TARGET"
+import json, sys
+
+raw_file, scan_file, scanner, target = sys.argv[1:5]
+try:
+    data = json.loads(open(raw_file).read())
+except Exception:
+    data = {}
+
+vulns = []
+
+if scanner == "trivy":
+    for result in data.get("Results", []) or []:
+        for v in result.get("Vulnerabilities", []) or []:
+            vulns.append({
+                "id": v.get("VulnerabilityID"),
+                "package": v.get("PkgName"),
+                "installed_version": v.get("InstalledVersion"),
+                "fixed_version": v.get("FixedVersion"),
+                "severity": v.get("Severity"),
+                "title": v.get("Title"),
+                "primary_url": v.get("PrimaryURL"),
+            })
+elif scanner == "grype":
+    for match in data.get("matches", []) or []:
+        art = match.get("artifact", {}) or {}
+        v   = match.get("vulnerability", {}) or {}
+        vulns.append({
+            "id": v.get("id"),
+            "package": art.get("name"),
+            "installed_version": art.get("version"),
+            "fixed_version": ", ".join((v.get("fix") or {}).get("versions", []) or []),
+            "severity": v.get("severity"),
+            "title": v.get("description"),
+            "primary_url": v.get("dataSource"),
+        })
+
+with open(scan_file, "w") as f:
+    json.dump({
+        "status": "completed",
+        "scanner": scanner,
+        "target": target,
+        "vulnerabilities": vulns,
+    }, f, indent=2)
+PYEOF
+}
+
 run_binary_scan() {
   info "Running binary/vulnerability scan …"
   local scan_file="$OUTPUT_DIR/binary_scan.json"
+  local raw_file="$OUTPUT_DIR/.binary_scan_raw.json"
+
+  if _is_url_target "$MCP_TARGET"; then
+    warn "Binary scan skipped — filesystem scanners require a local path; URL targets are not scanned."
+    _write_binary_scan_status "$scan_file" "skipped" \
+      "filesystem scanners require a local path; URL targets are not scanned"
+    return 0
+  fi
+
+  if [[ ! -e "$MCP_TARGET" ]]; then
+    warn "Binary scan target does not exist: $MCP_TARGET"
+    _write_binary_scan_status "$scan_file" "error" "target path does not exist"
+    return 0
+  fi
 
   if command -v trivy &>/dev/null; then
-    trivy fs --format json --output "$scan_file" "$MCP_TARGET" 2>/dev/null \
-      || echo '{"error":"trivy scan failed","vulnerabilities":[]}' > "$scan_file"
-    ok "Trivy scan complete: $scan_file"
+    if trivy fs --format json --output "$raw_file" "$MCP_TARGET" 2>/dev/null; then
+      _normalize_binary_scan "$raw_file" "$scan_file" "trivy"
+      ok "Trivy scan complete: $scan_file"
+    else
+      warn "trivy scan failed"
+      _write_binary_scan_status "$scan_file" "error" "trivy scan failed"
+    fi
   elif command -v grype &>/dev/null; then
-    grype "$MCP_TARGET" -o json 2>/dev/null > "$scan_file" \
-      || echo '{"error":"grype scan failed","matches":[]}' > "$scan_file"
-    ok "Grype scan complete: $scan_file"
+    if grype "$MCP_TARGET" -o json 2>/dev/null > "$raw_file"; then
+      _normalize_binary_scan "$raw_file" "$scan_file" "grype"
+      ok "Grype scan complete: $scan_file"
+    else
+      warn "grype scan failed"
+      _write_binary_scan_status "$scan_file" "error" "grype scan failed"
+    fi
   else
     warn "No vulnerability scanner found (trivy/grype). Skipping binary scan."
-    echo '{"status":"skipped","reason":"no scanner available"}' > "$scan_file"
+    _write_binary_scan_status "$scan_file" "skipped" "no scanner available"
   fi
 }
 
@@ -238,6 +330,23 @@ PYEOF
 compute_verdict() {
   info "Computing final verdict …"
 
+  if ! command -v python3 &>/dev/null; then
+    warn "python3 not found. Unable to compute final verdict."
+    cat > "$REPORT_FILE" <<'EOF'
+{
+  "verdict": "requires_manual_review",
+  "reasons": ["python3 not available; automated verdict could not be computed"],
+  "summary": {"semantic_status": "unknown", "binary_vulns": "unknown", "tests_passed": "n/a"}
+}
+EOF
+    warn "Verdict: REQUIRES MANUAL REVIEW (incomplete scan)"
+    return 1
+  fi
+
+  # Temporarily disable errexit so a non-zero Python exit (1=manual, 2=rejected)
+  # does not terminate the script before we can read and report the exit code.
+  local rc
+  set +e
   python3 - <<'PYEOF' "$OUTPUT_DIR" "$REPORT_FILE"
 import json, sys, os
 
@@ -247,7 +356,7 @@ def load(fname):
     p = os.path.join(scan_dir, fname)
     try:
         return json.loads(open(p).read())
-    except:
+    except Exception:
         return {}
 
 semantic = load("semantic_report.json")
@@ -266,10 +375,10 @@ elif semantic.get("warning_issues", 0) > 0:
         verdict = "requires_manual_review"
     issues.append(f"Semantic scan: {semantic['warning_issues']} warning(s)")
 
-# Binary scan findings
-vuln_count = len(binary.get("vulnerabilities", binary.get("matches", [])))
-critical_vulns = [v for v in binary.get("vulnerabilities", binary.get("matches", []))
-                  if (v.get("Severity") or v.get("vulnerability", {}).get("severity", "")).upper() in ("CRITICAL", "HIGH")]
+# Binary scan findings (normalized: top-level 'vulnerabilities' list)
+vulns = binary.get("vulnerabilities", [])
+vuln_count = len(vulns)
+critical_vulns = [v for v in vulns if str(v.get("severity", "")).upper() in ("CRITICAL", "HIGH")]
 if critical_vulns:
     verdict = "rejected"
     issues.append(f"Binary scan: {len(critical_vulns)} critical/high vulnerability(ies)")
@@ -277,9 +386,13 @@ elif vuln_count > 0:
     if verdict != "rejected":
         verdict = "requires_manual_review"
     issues.append(f"Binary scan: {vuln_count} vulnerability(ies)")
+elif binary.get("status") == "error":
+    if verdict != "rejected":
+        verdict = "requires_manual_review"
+    issues.append(f"Binary scan: scanner returned an error — manual review required")
 
 # Custom test failures
-total = tests.get("total", 0)
+total  = tests.get("total", 0)
 passed = tests.get("passed", 0)
 if total > 0 and passed < total:
     failed = total - passed
@@ -308,8 +421,9 @@ print(json.dumps(result, indent=2))
 exit_codes = {"approved": 0, "requires_manual_review": 1, "rejected": 2}
 sys.exit(exit_codes.get(verdict, 1))
 PYEOF
+  rc=$?
+  set -e
 
-  local rc=$?
   case $rc in
     0) ok "Verdict: APPROVED" ;;
     1) warn "Verdict: REQUIRES MANUAL REVIEW" ;;

@@ -81,6 +81,10 @@ the issue.
 
 ## Step 3: Parse deployment parameters
 
+gh-aw automatically injects a `sanitized` step for all issue-triggered workflows,
+so `${{ steps.sanitized.outputs.text }}` is always available and contains the
+issue title and body with security-safe sanitization applied.
+
 From `${{ steps.sanitized.outputs.text }}`, extract:
 - `server_name` — from "### Server Name" section
 - `server_url` — from "### Runtime URL" section
@@ -132,7 +136,7 @@ available for discovery by AI agents.
 1. Add label `deployment-failed`
 2. Post comment:
 
-```markdown
+````markdown
 ## ❌ Deployment Failed
 
 The deployment to Azure API Center failed. Error output:
@@ -148,6 +152,6 @@ The deployment to Azure API Center failed. Error output:
 
 Please review the configuration and re-trigger by removing and re-adding the
 `approved` label, or contact <owner_team> for assistance.
-```
+````
 
 Do **not** close the issue on failure — it requires human intervention.

@@ -8,8 +8,7 @@
 #     --description    <text>          \
 #     --subscription   <azure-sub-id>  \
 #     --resource-group <rg-name>       \
-#     --apic-service   <apic-name>     \
-#     [--api-version   <api-version>]
+#     --apic-service   <apic-name>
 
 set -euo pipefail
 
@@ -19,7 +18,6 @@ DESCRIPTION=""
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID:-}"
 RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-}"
 APIC_SERVICE="${AZURE_APIC_SERVICE:-}"
-API_VERSION="2024-03-01"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,7 +27,6 @@ while [[ $# -gt 0 ]]; do
     --subscription)   SUBSCRIPTION_ID="$2"; shift 2 ;;
     --resource-group) RESOURCE_GROUP="$2"; shift 2 ;;
     --apic-service)   APIC_SERVICE="$2";   shift 2 ;;
-    --api-version)    API_VERSION="$2";    shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -68,17 +65,35 @@ register_mcp_in_apic() {
 
   info "Registering MCP server '$SERVER_NAME' in Azure API Center …"
 
-  # Create / update the API entry
-  az apic api create \
-    --resource-group   "$RESOURCE_GROUP" \
-    --service-name     "$APIC_SERVICE" \
-    --api-id           "$api_id" \
-    --title            "$SERVER_NAME" \
-    --type             "REST" \
-    --description      "${DESCRIPTION:-MCP server registered via automated approval pipeline}" \
-    --subscription     "$SUBSCRIPTION_ID" \
-    --output none 2>/dev/null \
-    || info "API already exists – updating …"
+  # Create or update the API entry — probe first to distinguish "already exists"
+  # from genuine failures (auth, throttling, invalid params, etc.).
+  if az apic api show \
+       --resource-group "$RESOURCE_GROUP" \
+       --service-name   "$APIC_SERVICE" \
+       --api-id         "$api_id" \
+       --subscription   "$SUBSCRIPTION_ID" \
+       --output none &>/dev/null; then
+    info "API '$api_id' already exists — updating …"
+    az apic api update \
+      --resource-group "$RESOURCE_GROUP" \
+      --service-name   "$APIC_SERVICE" \
+      --api-id         "$api_id" \
+      --title          "$SERVER_NAME" \
+      --description    "${DESCRIPTION:-MCP server registered via automated approval pipeline}" \
+      --subscription   "$SUBSCRIPTION_ID" \
+      --output none
+  else
+    info "Creating API '$api_id' …"
+    az apic api create \
+      --resource-group "$RESOURCE_GROUP" \
+      --service-name   "$APIC_SERVICE" \
+      --api-id         "$api_id" \
+      --title          "$SERVER_NAME" \
+      --type           "REST" \
+      --description    "${DESCRIPTION:-MCP server registered via automated approval pipeline}" \
+      --subscription   "$SUBSCRIPTION_ID" \
+      --output none
+  fi
 
   # Register the deployment (runtime URL)
   local env_name="production"
