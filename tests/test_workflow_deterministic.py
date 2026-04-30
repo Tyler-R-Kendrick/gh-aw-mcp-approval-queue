@@ -69,11 +69,12 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertNotIn("steps.request_payload.outputs", workflow_text)
         self.assertNotIn("id: request_payload", workflow_text)
 
-    def test_mcp_request_workflow_normalizes_endpoint_values(self) -> None:
+    def test_mcp_request_workflow_normalizes_endpoint_value(self) -> None:
         workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
 
         self.assertIn("assume HTTPS by", workflow_text)
         self.assertIn("prepending `https://`", workflow_text)
+        self.assertIn("preserve it as-is", workflow_text)
         self.assertIn("Markdown delimiters", workflow_text)
 
     def test_all_mcp_workflows_support_manual_dispatch(self) -> None:
@@ -88,13 +89,14 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' ||", workflow_text)
         self.assertIn("contains(github.event.issue.labels.*.name, 'pending-review')", workflow_text)
 
-    def test_review_and_deploy_workflows_normalize_endpoint_values(self) -> None:
+    def test_review_and_deploy_workflows_normalize_endpoint_value(self) -> None:
         for workflow_id in ("mcp-review", "mcp-deploy"):
             workflow_text = (REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.md").read_text(encoding="utf-8")
 
             self.assertIn("Markdown delimiters", workflow_text)
             self.assertIn("no URI scheme", workflow_text)
             self.assertIn("`https://`", workflow_text)
+            self.assertIn("preserve it as-is", workflow_text)
 
     def test_manual_review_and_deploy_workflows_accept_issue_number_input(self) -> None:
         for workflow_id in ("mcp-review", "mcp-deploy"):

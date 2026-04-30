@@ -85,7 +85,8 @@ Normalize `server_url` before validating or scanning it:
    `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
 3. If the remaining value is non-empty and has no URI scheme, prepend
    `https://`.
-4. Use the normalized value for all remaining steps.
+4. If the value already has a URI scheme, preserve it as-is.
+5. Use the normalized value for all remaining steps.
 
 If `server_url` is missing or still does not start with `https://` after
 normalization:

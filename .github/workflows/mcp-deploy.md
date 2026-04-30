@@ -115,8 +115,14 @@ Normalize `server_url` before deriving the deployment parameters:
    `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
 3. If the remaining value is non-empty and has no URI scheme, prepend
    `https://`.
-4. Use the normalized value for `server_url`, `server_name`, and the deployment
+4. If the value already has a URI scheme, preserve it as-is.
+5. Use the normalized value for `server_url`, `server_name`, and the deployment
    command.
+
+If `server_url` is missing or still does not start with `https://` after
+normalization, post a comment on `issue_number` explaining that deployment was
+skipped because the MCP endpoint must be a valid HTTPS URL, then stop without
+deploying.
 
 Derive `server_name` from `server_url` using this exact rule:
 1. Start with the endpoint hostname.

@@ -79,7 +79,8 @@ Normalize the resolved endpoint before using it anywhere in the workflow:
    `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
 3. If the remaining value is non-empty and has no URI scheme, assume HTTPS by
    prepending `https://`.
-4. Use the normalized value as `server_url`.
+4. If the value already has a URI scheme, preserve it as-is.
+5. Use the normalized value as `server_url`.
 
 Only use the defaults below when a field is genuinely missing or blank after
 normalization:
