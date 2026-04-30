@@ -95,12 +95,12 @@ class WorkflowCompilationTests(unittest.TestCase):
     def test_review_and_deploy_workflows_normalize_endpoint_value(self) -> None:
         for workflow_id in ("mcp-review", "mcp-deploy"):
             workflow_text = (REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.md").read_text(encoding="utf-8")
-            normalized_text = " ".join(workflow_text.split())
+            single_spaced_text = " ".join(workflow_text.split())
 
             self.assertIn("Trim surrounding whitespace.", workflow_text)
             self.assertIn("Markdown delimiters", workflow_text)
             self.assertIn("has no URI scheme", workflow_text)
-            self.assertIn("prepend `https://`.", normalized_text)
+            self.assertIn("prepend `https://`.", single_spaced_text)
             self.assertIn("preserve it as-is", workflow_text)
 
     def test_manual_review_and_deploy_workflows_accept_issue_number_input(self) -> None:
