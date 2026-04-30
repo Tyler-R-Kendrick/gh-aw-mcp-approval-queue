@@ -1,0 +1,106 @@
+name: MCP Server Request
+description: Submit a new MCP (Model Context Protocol) server for review and approval.
+title: "[MCP Request] <Server Name>"
+labels:
+  - mcp-request
+  - pending-review
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## MCP Server Registration Request
+
+        Thank you for submitting an MCP server for review. Complete all required fields below.
+        Your request will be automatically scanned for security and semantic correctness.
+
+        **Review process:**
+        1. Automated scans run within minutes of submission
+        2. Results are posted back to this issue
+        3. Approved servers are automatically deployed to the Azure API Center registry
+        4. Servers requiring manual review are escalated to the security team
+
+  - type: input
+    id: server_name
+    attributes:
+      label: Server Name
+      description: A short, descriptive name for your MCP server
+      placeholder: "e.g., Contoso Weather Data MCP"
+    validations:
+      required: true
+
+  - type: input
+    id: server_url
+    attributes:
+      label: Runtime URL
+      description: The public HTTPS endpoint where the MCP server is hosted
+      placeholder: "https://your-mcp-server.example.com/mcp"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what this MCP server does and what data/services it exposes
+      placeholder: "This MCP server provides real-time weather data for North American cities..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: tools_overview
+    attributes:
+      label: Tools Overview
+      description: List the tools this MCP server exposes (name + brief description each)
+      placeholder: |
+        - `get_current_weather(city, units)` – Returns current weather conditions
+        - `get_forecast(city, days)` – Returns a multi-day forecast
+    validations:
+      required: true
+
+  - type: input
+    id: owner_team
+    attributes:
+      label: Owning Team / Contact
+      description: GitHub team or @username responsible for this MCP server
+      placeholder: "@my-org/platform-team"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_classification
+    attributes:
+      label: Data Classification
+      description: What is the highest classification of data this server accesses?
+      options:
+        - Public
+        - Internal
+        - Confidential
+        - Restricted
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security_checklist
+    attributes:
+      label: Security Checklist
+      description: Confirm you have addressed each of the following before submitting
+      options:
+        - label: The server does not log or store raw user prompts
+          required: true
+        - label: The server uses HTTPS/TLS for all transport
+          required: true
+        - label: Authentication is required to invoke tools (OAuth 2.x, API key, or Entra ID)
+          required: true
+        - label: No credentials, secrets, or tokens are hardcoded
+          required: true
+        - label: The server has been tested locally against the MCP specification
+          required: true
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional Notes
+      description: Any additional context, known limitations, or special requirements
+    validations:
+      required: false
