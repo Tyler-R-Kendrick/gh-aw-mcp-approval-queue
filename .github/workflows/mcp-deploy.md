@@ -2,9 +2,14 @@
 name: MCP Deploy to Azure APIC
 description: Deploys an approved MCP server to the Azure API Center MCP registry when the 'approved' label is added to an mcp-request issue.
 on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number of the approved MCP request to deploy"
+        required: true
   issues:
     types: [labeled]
-if: github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'mcp-request')
+if: github.event_name == 'workflow_dispatch' || (github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'mcp-request'))
 permissions:
   contents: read
   issues: read
@@ -50,21 +55,36 @@ timeout-minutes: 15
 
 # MCP Deploy to Azure APIC
 
-You are the MCP deployment agent. When the `approved` label is added to an
-`mcp-request` issue, you deploy the MCP server to the Azure API Center registry,
+You are the MCP deployment agent. When an approved `mcp-request` issue is ready
+for deployment, you deploy the MCP server to the Azure API Center registry,
 update the issue with the deployment result, and close it on success.
 
-## Step 1: Verify pre-conditions
+## Step 1: Resolve the target issue
 
-Read the issue and confirm all of the following:
+Resolve `issue_number` and `issue_text` using the trigger type:
+
+- If `${{ github.event_name }}` is `issues`, use `${{ github.event.issue.number }}`
+  as `issue_number` and `${{ steps.sanitized.outputs.text }}` as `issue_text`.
+- If `${{ github.event_name }}` is `workflow_dispatch`, read
+  `${{ github.event.inputs.issue_number || '' }}` as `issue_number`.
+  It must be a positive integer. Then use the GitHub issues tool to fetch that
+  issue and build `issue_text` from its title and body.
+
+If the manual input is missing, invalid, or the issue cannot be loaded, call
+`noop` with a brief explanation and stop.
+
+## Step 2: Verify pre-conditions
+
+Read the resolved issue and confirm all of the following:
 - Issue has label `mcp-request`
 - Issue has label `approved`
 - Issue does **not** have label `rejected`
 - Issue does **not** have label `deployed`
+- Issue is still open
 
 If any condition fails, call `noop` explaining why deployment was skipped and stop.
 
-## Step 2: Verify required secrets
+## Step 3: Verify required secrets
 
 Confirm that each of these secrets is non-empty (they are injected as environment
 variables with the same names):
@@ -79,13 +99,13 @@ If any required secret is missing, post a comment explaining which secrets are
 missing and what the repository admin should configure, then stop without closing
 the issue.
 
-## Step 3: Parse deployment parameters
+## Step 4: Parse deployment parameters
 
-gh-aw automatically injects a `sanitized` step for all issue-triggered workflows,
-so `${{ steps.sanitized.outputs.text }}` is always available and contains the
-issue title and body with security-safe sanitization applied.
+For issue-triggered runs, gh-aw automatically injects a `sanitized` step, so
+`${{ steps.sanitized.outputs.text }}` is available. For manual runs, use the
+resolved `issue_text` you built from the fetched issue title and body.
 
-From `${{ steps.sanitized.outputs.text }}`, extract:
+From `issue_text`, extract:
 - `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section
 - `request_reason` — use the "### Request Reason" section when it is present and non-empty; otherwise fall back to the legacy "### Description" section
 
@@ -97,7 +117,7 @@ Derive `server_name` from `server_url` using this exact rule:
 
 Use `request_reason` as the deployment description.
 
-## Step 4: Deploy to Azure API Center
+## Step 5: Deploy to Azure API Center
 
 Run the deployment script:
 
@@ -113,12 +133,16 @@ bash scripts/deploy-to-apic.sh \
 
 Capture stdout and stderr. The script exits 0 on success, non-zero on failure.
 
-## Step 5: Handle the deployment result
+## Step 6: Handle the deployment result
+
+When using safe outputs:
+- Set `item_number` to `issue_number` for `add_comment` and `add_labels`
+- Set `issue_number` to `issue_number` for `close_issue`
 
 ### On success (exit code 0)
 
-1. Add label `deployed`
-2. Post comment:
+1. Add label `deployed` to `issue_number`
+2. Post comment on `issue_number`:
 
 ```markdown
 ## 🚀 Deployment Successful
@@ -135,12 +159,12 @@ available for discovery by AI agents.
 *Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}*
 ```
 
-3. Close the issue with comment: `✅ Deployment complete. This MCP server request is resolved.`
+3. Close `issue_number` with comment: `✅ Deployment complete. This MCP server request is resolved.`
 
 ### On failure (non-zero exit code)
 
-1. Add label `deployment-failed`
-2. Post comment:
+1. Add label `deployment-failed` to `issue_number`
+2. Post comment on `issue_number`:
 
 ````markdown
 ## ❌ Deployment Failed
@@ -156,8 +180,9 @@ The deployment to Azure API Center failed. Error output:
 - APIC service `<AZURE_APIC_SERVICE>` does not exist in the subscription
 - Service principal lacks `Contributor` access to `<AZURE_RESOURCE_GROUP>`
 
-Please review the configuration and re-trigger by removing and re-adding the
-`approved` label once the configuration is fixed.
+Please review the configuration and re-trigger by rerunning this workflow
+manually or by removing and re-adding the `approved` label once the
+configuration is fixed.
 ````
 
 Do **not** close the issue on failure — it requires human intervention.

@@ -69,6 +69,24 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertNotIn("steps.request_payload.outputs", workflow_text)
         self.assertNotIn("id: request_payload", workflow_text)
 
+    def test_all_mcp_workflows_support_manual_dispatch(self) -> None:
+        for workflow_id in WORKFLOW_IDS:
+            workflow_text = (REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.md").read_text(encoding="utf-8")
+            self.assertIn("workflow_dispatch", workflow_text)
+
+    def test_mcp_review_workflow_listens_for_pending_review_issue_events(self) -> None:
+        workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-review.md").read_text(encoding="utf-8")
+
+        self.assertIn("types: [opened, edited, labeled, reopened]", workflow_text)
+        self.assertIn("github.event_name == 'workflow_dispatch' ||", workflow_text)
+        self.assertIn("contains(github.event.issue.labels.*.name, 'pending-review')", workflow_text)
+
+    def test_manual_review_and_deploy_workflows_accept_issue_number_input(self) -> None:
+        for workflow_id in ("mcp-review", "mcp-deploy"):
+            workflow_text = (REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.md").read_text(encoding="utf-8")
+            self.assertIn("issue_number:", workflow_text)
+            self.assertIn("${{ github.event.inputs.issue_number || '' }}", workflow_text)
+
     def test_issue_template_is_minimal(self) -> None:
         template_text = (REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "mcp-server-request.yml").read_text(encoding="utf-8")
 

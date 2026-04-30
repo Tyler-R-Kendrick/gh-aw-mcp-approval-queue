@@ -18,6 +18,7 @@ def test_review_workflow_contract(agent):
     contract = json.loads(result.output)
 
     assert contract["mentions_scan_script"]
+    assert contract["mentions_workflow_dispatch"]
     assert contract["mentions_pending_review_removal"]
     assert contract["mentions_requires_manual_review"]
     assert contract["mentions_approved_label"]
@@ -30,6 +31,7 @@ def test_deploy_workflow_contract(agent):
     contract = json.loads(result.output)
 
     assert contract["mentions_deploy_script"]
+    assert contract["mentions_workflow_dispatch"]
     assert contract["mentions_secret_verification"]
     assert contract["mentions_approved_label"]
     assert contract["mentions_deployed_label"]
