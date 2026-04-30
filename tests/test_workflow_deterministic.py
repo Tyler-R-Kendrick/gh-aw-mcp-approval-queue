@@ -73,7 +73,7 @@ class WorkflowCompilationTests(unittest.TestCase):
         workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
 
         self.assertIn("assume HTTPS by", workflow_text)
-        self.assertIn("prepended `https://`", workflow_text.replace("prepending", "prepended"))
+        self.assertIn("prepending `https://`", workflow_text)
         self.assertIn("Markdown delimiters", workflow_text)
 
     def test_all_mcp_workflows_support_manual_dispatch(self) -> None:
@@ -88,7 +88,7 @@ class WorkflowCompilationTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' ||", workflow_text)
         self.assertIn("contains(github.event.issue.labels.*.name, 'pending-review')", workflow_text)
 
-    def test_review_and_deploy_workflows_normalize_endpoints(self) -> None:
+    def test_review_and_deploy_workflows_normalize_endpoint_values(self) -> None:
         for workflow_id in ("mcp-review", "mcp-deploy"):
             workflow_text = (REPO_ROOT / ".github" / "workflows" / f"{workflow_id}.md").read_text(encoding="utf-8")
 
