@@ -10,6 +10,7 @@ on:
   issues:
     types: [opened, edited, labeled, reopened]
   skip-if-no-match: "is:issue is:open label:mcp-request label:pending-review"
+if: github.event_name == 'workflow_dispatch' || (contains(github.event.issue.labels.*.name, 'mcp-request') && contains(github.event.issue.labels.*.name, 'pending-review') && !contains(github.event.issue.labels.*.name, 'approved') && !contains(github.event.issue.labels.*.name, 'rejected') && !contains(github.event.issue.labels.*.name, 'requires-manual-review'))
 permissions:
   contents: read
   issues: read

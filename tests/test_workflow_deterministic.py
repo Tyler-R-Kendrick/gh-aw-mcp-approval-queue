@@ -78,6 +78,8 @@ class WorkflowCompilationTests(unittest.TestCase):
         workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-review.md").read_text(encoding="utf-8")
 
         self.assertIn("types: [opened, edited, labeled, reopened]", workflow_text)
+        self.assertIn("github.event_name == 'workflow_dispatch' ||", workflow_text)
+        self.assertIn("contains(github.event.issue.labels.*.name, 'pending-review')", workflow_text)
 
     def test_manual_review_and_deploy_workflows_accept_issue_number_input(self) -> None:
         for workflow_id in ("mcp-review", "mcp-deploy"):
