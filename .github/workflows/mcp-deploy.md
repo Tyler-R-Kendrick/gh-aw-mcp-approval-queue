@@ -86,8 +86,8 @@ so `${{ steps.sanitized.outputs.text }}` is always available and contains the
 issue title and body with security-safe sanitization applied.
 
 From `${{ steps.sanitized.outputs.text }}`, extract:
-- `server_url` — from "### MCP Endpoint" section, or fall back to the legacy "### Runtime URL" section if needed
-- `request_reason` — from "### Request Reason" section, or fall back to the legacy "### Description" section if needed
+- `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section
+- `request_reason` — use the "### Request Reason" section when it is present and non-empty; otherwise fall back to the legacy "### Description" section
 
 Derive `server_name` from `server_url` using this exact rule:
 1. Start with the endpoint hostname.

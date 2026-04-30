@@ -56,7 +56,7 @@ issue title and body with security-safe sanitization applied.
 
 From `${{ steps.sanitized.outputs.text }}`, extract:
 
-- `server_url` — prefer the "### MCP Endpoint" section; if it is missing or blank, fall back to the legacy "### Runtime URL" section for backwards compatibility
+- `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section for backwards compatibility
 - `issue_number` — from `${{ github.event.issue.number }}`
 
 If `server_url` is missing or does not start with `https://`:
