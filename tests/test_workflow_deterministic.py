@@ -55,13 +55,15 @@ class WorkflowCompilationTests(unittest.TestCase):
         workflow_text = (REPO_ROOT / ".github" / "workflows" / "mcp-request.md").read_text(encoding="utf-8")
 
         self.assertIn(
-            "${{ inputs.server_url || github.event.inputs.server_url || github.event.client_payload.server_url || github.event.client_payload.payload.server_url || '' }}",
+            "${{ github.event.inputs.server_url || '' }}",
             workflow_text,
         )
         self.assertIn(
-            "${{ inputs.request_reason || github.event.inputs.request_reason || github.event.client_payload.request_reason || github.event.client_payload.payload.request_reason || 'No request reason provided — please update this issue.' }}",
+            "${{ github.event.inputs.request_reason || '' }}",
             workflow_text,
         )
+        self.assertIn("python3 - <<'PY'", workflow_text)
+        self.assertIn('os.environ["GITHUB_EVENT_PATH"]', workflow_text)
         self.assertNotIn("steps.request_payload.outputs", workflow_text)
         self.assertNotIn("id: request_payload", workflow_text)
 

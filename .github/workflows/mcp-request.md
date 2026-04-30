@@ -24,6 +24,8 @@ safe-outputs:
 tools:
   github:
     toolsets: [issues]
+  bash:
+    - "python3 *"
 ---
 
 # MCP Request Intake
@@ -35,11 +37,44 @@ issue so the MCP review pipeline can process the submission.
 
 The workflow runtime has already expanded the trigger payload into these values:
 
-- `server_url`: `${{ inputs.server_url || github.event.inputs.server_url || github.event.client_payload.server_url || github.event.client_payload.payload.server_url || '' }}`
-- `request_reason`: `${{ inputs.request_reason || github.event.inputs.request_reason || github.event.client_payload.request_reason || github.event.client_payload.payload.request_reason || 'No request reason provided — please update this issue.' }}`
+- `server_url_from_inputs`: `${{ github.event.inputs.server_url || '' }}`
+- `request_reason_from_inputs`: `${{ github.event.inputs.request_reason || '' }}`
 
-Use those exact values. Trim only surrounding whitespace. Only use the defaults
-below when a field is genuinely missing or blank after trimming:
+If `server_url_from_inputs` is non-empty after trimming whitespace, use it as
+`server_url`. Use `request_reason_from_inputs` as `request_reason`, defaulting to
+`"No request reason provided — please update this issue."` only when it is blank.
+
+If `server_url_from_inputs` is blank, this run may have been triggered through
+`repository_dispatch`. In that case, use the `bash` tool to run this exact
+command and parse its JSON output:
+
+```bash
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+def cleaned(value: object) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+client_payload = event.get("client_payload") or {}
+payload = client_payload.get("payload") or {}
+
+print(json.dumps({
+    "server_url": cleaned(client_payload.get("server_url")) or cleaned(payload.get("server_url")),
+    "request_reason": (
+        cleaned(client_payload.get("request_reason"))
+        or cleaned(payload.get("request_reason"))
+        or "No request reason provided — please update this issue."
+    ),
+}))
+PY
+```
+
+Use the returned `server_url` and `request_reason` values exactly as provided.
+Trim only surrounding whitespace. Only use the defaults below when a field is
+genuinely missing or blank after trimming:
 
 | Field | Default |
 |-------|---------|
