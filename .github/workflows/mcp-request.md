@@ -72,9 +72,18 @@ print(json.dumps({
 PY
 ```
 
-Use the returned `server_url` and `request_reason` values exactly as provided.
-Trim only surrounding whitespace. Only use the defaults below when a field is
-genuinely missing or blank after trimming:
+Normalize the resolved endpoint before using it anywhere in the workflow:
+
+1. Trim surrounding whitespace.
+2. If the value is wrapped in a single pair of Markdown delimiters such as
+   `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
+3. If the remaining value is non-empty and has no URI scheme, assume HTTPS by
+   prepending `https://`.
+4. If the value already has a URI scheme, preserve it as-is.
+5. Use the normalized value as `server_url`.
+
+Only use the defaults below when a field is genuinely missing or blank after
+normalization:
 
 | Field | Default |
 |-------|---------|
@@ -137,8 +146,8 @@ update) but add a comment warning:
 before the automated scan begins.
 ```
 
-If `server_url` is provided but does not start with `https://`, create the issue
-but add a comment warning:
+If `server_url` is provided but still does not start with `https://` after
+normalization, create the issue but add a comment warning:
 ```
 ⚠️ The MCP endpoint does not start with `https://`. Please update the issue with a
 valid HTTPS URL before the automated scan begins.

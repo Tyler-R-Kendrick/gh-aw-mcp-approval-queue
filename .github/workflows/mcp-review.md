@@ -79,7 +79,17 @@ From `issue_text`, extract:
 
 - `server_url` — use the "### MCP Endpoint" section when it is present and non-empty; otherwise fall back to the legacy "### Runtime URL" section for backwards compatibility
 
-If `server_url` is missing or does not start with `https://`:
+Normalize `server_url` before validating or scanning it:
+1. Trim surrounding whitespace.
+2. If the value is wrapped in a single pair of Markdown delimiters such as
+   `<...>`, `(...)`, or `` `...` ``, strip that outer wrapper.
+3. If the remaining value is non-empty and has no URI scheme, prepend
+   `https://`.
+4. If the value already has a URI scheme, preserve it as-is.
+5. Use the normalized value for all remaining steps.
+
+If `server_url` is missing or still does not start with `https://` after
+normalization:
 1. Post a comment on `issue_number`: `❌ Invalid or missing MCP endpoint. Please update this issue with a valid HTTPS URL to begin scanning.`
 2. Add label `requires-manual-review` to `issue_number`
 3. Remove label `pending-review` from `issue_number`
